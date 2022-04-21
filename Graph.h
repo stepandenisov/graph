@@ -3,6 +3,8 @@
 #include <iostream>
 #include <vector>
 #include <queue>
+#include <algorithm>
+#include <functional>
 
 using namespace std;
 
@@ -147,58 +149,143 @@ public:
 		}
 	}
 
-	struct u {
+	struct color_vertex {
 		unsigned color = 0;
-		vertex cur;
-		TVertex prev;
-		vector<u> dest_list;
-		unsigned d;
+		vertex current;
+		TVertex previous;
+		unsigned step;
 	};
 
 	void width_search()
 	{
-		vector<u> U;
+		vector<color_vertex> U;
 		for (unsigned i = 0; i < table.size(); i++)
 		{
-			u tmp;
-			tmp.cur = table.at(i);
-			//tmp.prev = table.at(i).source_vertex;
-			tmp.d = NAN;
+			color_vertex tmp;
+			tmp.current = table.at(i);
+			tmp.previous = table.at(i).source_vertex;
+			tmp.step = NAN;
 			U.push_back(tmp);
 		}
 		for (unsigned i = 0; i < U.size(); i++)
 		{
 			if (U.at(i).color == 0) { ws(U.at(i), U); }
-		}
+		}		
 	}
 
-	void ws(u& s, vector<u>& U)
+	void ws(color_vertex& s, vector<color_vertex>& U)
 	{
-		queue<u> Q;
+		queue<color_vertex> Q;
 		s.color = 1;
-		s.d = 0;
+		s.step = 0;
 		Q.push(s);
 		while (!Q.empty())
 		{
-			u a = Q.front();
+			color_vertex a = Q.front();
 			Q.pop();
-			cout << endl << "from ";
-			cout << a.cur.source_vertex;
-			cout << " to ";
-			for (unsigned i = 0; i < a.cur.list_of_destinations.size(); i++)
+			//cout << endl << "from ";
+			//cout << a.cur.source_vertex;
+			//cout << " to ";
+			for (unsigned i = 0; i < a.current.list_of_destinations.size(); i++)
 			{
-				unsigned id = index(a.cur.list_of_destinations.at(i).destination_vertex);
-				cout << U.at(id).cur.source_vertex << " and ";
+				unsigned id = index(a.current.list_of_destinations.at(i).destination_vertex);
+				//cout << U.at(id).cur.source_vertex << " and ";
 				if (U.at(id).color == 0)
 				{
 					U.at(id).color = 1;
-					U.at(id).d = a.d + 1;
-					U.at(id).prev = a.cur.source_vertex;
+					U.at(id).step = a.step + 1;
+					U.at(id).previous = a.current.source_vertex;
 					Q.push(U.at(id));
 				}
 			}
+			//cout << endl;
+			U.at(index(a.current.source_vertex)).color = 2;
+		}
+	}
+
+	struct Way {
+		vector<TVertex> way;
+		TEdge length;
+	};
+
+	void Dijkstra(TVertex source, TVertex dest)
+	{
+		unsigned st = index(source);
+		unsigned dt = index(dest);
+		unsigned n = table.size();
+		vector<vector<TEdge>> w(table.size());
+		for (unsigned i = 0; i < table.size(); i++)
+		{
+			for (unsigned j = 0; j < table.size(); j++)
+			{
+				w[i].push_back(INT_MAX);
+			}
+		}
+		for (unsigned i = 0; i < table.size(); i++)
+		{
+			for (unsigned j = 0; j < table.at(i).list_of_destinations.size(); j++)
+			{
+				unsigned dest_index = index(table.at(i).list_of_destinations.at(j).destination_vertex);
+				w[i][dest_index] = table.at(i).list_of_destinations.at(j).edge;
+			}
+		}
+		vector<vector<TVertex>> res;
+		res.resize(table.size());
+		unsigned f = 0;
+		for (int i = 0; i < n; i++)
+		{
+			res[i].resize(table.size());
+			res[i][0] = (table.at(st).source_vertex);
+		}
+		vector<bool> visited(table.size());
+		vector<TEdge> D(table.size());
+		for (int i = 0; i < n; i++)
+		{
+			D[i] = w[st][i];
+			visited[i] = false;
+		}
+		D[st] = 0;
+		int index = 0, u = 0;
+		for (int i = 0; i < n; i++)
+		{
+			int min = INT_MAX;
+			for (int j = 0; j < n; j++)
+			{
+				if (!visited[j] && D[j] < min)
+				{
+					min = D[j];
+					index = j;
+				}
+			}
+			u = index;
+			visited[u] = true;
+			for (int j = 0; j < n; j++)
+			{
+				if (!visited[j] && w[u][j] != INT_MAX && D[u] != INT_MAX && (D[u] + w[u][j] < D[j]))
+				{
+					res[j] = res[u];
+					res[j].push_back((table.at(u).source_vertex));
+					f++;
+					//res[j].push_back((table.at(j).source_vertex));
+					D[j] = D[u] + w[u][j];
+				}
+			}
+			//f = 1;
+		}
+		//cout << "Стоимость пути из начальной вершины до остальных(Алгоритм Дейкстры):\t\n";
+		for (int i = 0; i < n; i++)
+		{
+			if (D[i] != INT_MAX)
+				cout << source << " -> " << table.at(i).source_vertex << " = " << D[i] << endl;
+			else
+				cout << source << " -> " << table.at(i).source_vertex << " = " << "error" << endl;
+		}
+		cout << endl;
+		for (unsigned i = 0; i < res.size(); i++)
+		{
+			for (unsigned j = 0; j < res[i].size(); j++)
+				cout << res[i][j] << "->";
 			cout << endl;
-			U.at(index(a.cur.source_vertex)).color = 2;
 		}
 	}
 };
@@ -210,14 +297,19 @@ int main()
 	g.add_vertex(2);
 	g.add_vertex(3);
 	g.add_vertex(4);
-	g.add_edge(2, 4, 6);
-	g.add_edge(1, 4, 5);
-	g.add_edge(4, 1, 8);
+	g.add_vertex(5);
+	g.add_edge(1, 2, 1);
+	g.add_edge(2, 3, 2);
+	g.add_edge(3, 4, 2);
+	g.add_edge(4, 5, 2);
+	g.add_edge(4, 1, 5);
 	g.add_edge(3, 2, 7);
 	g.add_edge(1, 2, 8);
 	g.add_edge(3, 4, 8);
+	g.add_edge(4, 5, 9);
 	g.print();
 	g.width_search();
+	g.Dijkstra(1, 5);
 	return 0;
 }
 
