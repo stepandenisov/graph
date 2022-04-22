@@ -5,6 +5,7 @@
 #include <queue>
 #include <algorithm>
 #include <functional>
+#include <float.h>
 
 using namespace std;
 
@@ -143,7 +144,10 @@ public:
 				cout << table.at(i).list_of_destinations.at(j).destination_vertex;
 				cout << " by ";
 				cout << table.at(i).list_of_destinations.at(j).edge;
-				cout << " and to ";
+				if (j != table.at(i).list_of_destinations.size() - 1) 
+				{
+					cout << ", ";
+				}
 			}
 			cout << endl;
 		}
@@ -203,16 +207,11 @@ public:
 		}
 	}
 
-	struct Way {
-		vector<TVertex> way;
-		TEdge length;
-	};
-
 	void Dijkstra(TVertex source, TVertex dest)
 	{
 		unsigned st = index(source);
 		unsigned dt = index(dest);
-		unsigned n = table.size();
+		//unsigned count = table.size();
 		vector<vector<TEdge>> w(table.size());
 		for (unsigned i = 0; i < table.size(); i++)
 		{
@@ -232,24 +231,24 @@ public:
 		vector<vector<TVertex>> res;
 		res.resize(table.size());
 		unsigned f = 0;
-		for (int i = 0; i < n; i++)
+		for (int i = 0; i < table.size(); i++)
 		{
-			res[i].resize(table.size());
-			res[i][0] = (table.at(st).source_vertex);
+			//res[i].resize(table.size());
+			res[i].push_back((table.at(st).source_vertex));
 		}
 		vector<bool> visited(table.size());
 		vector<TEdge> D(table.size());
-		for (int i = 0; i < n; i++)
+		for (int i = 0; i < table.size(); i++)
 		{
 			D[i] = w[st][i];
 			visited[i] = false;
 		}
 		D[st] = 0;
 		int index = 0, u = 0;
-		for (int i = 0; i < n; i++)
+		for (int i = 0; i < table.size(); i++)
 		{
 			int min = INT_MAX;
-			for (int j = 0; j < n; j++)
+			for (int j = 0; j < table.size(); j++)
 			{
 				if (!visited[j] && D[j] < min)
 				{
@@ -259,32 +258,137 @@ public:
 			}
 			u = index;
 			visited[u] = true;
-			for (int j = 0; j < n; j++)
+			for (int j = 0; j < table.size(); j++)
 			{
 				if (!visited[j] && w[u][j] != INT_MAX && D[u] != INT_MAX && (D[u] + w[u][j] < D[j]))
 				{
 					res[j] = res[u];
 					res[j].push_back((table.at(u).source_vertex));
-					f++;
+					//f++;
 					//res[j].push_back((table.at(j).source_vertex));
 					D[j] = D[u] + w[u][j];
 				}
 			}
 			//f = 1;
 		}
-		//cout << "Стоимость пути из начальной вершины до остальных(Алгоритм Дейкстры):\t\n";
-		for (int i = 0; i < n; i++)
-		{
-			if (D[i] != INT_MAX)
-				cout << source << " -> " << table.at(i).source_vertex << " = " << D[i] << endl;
-			else
-				cout << source << " -> " << table.at(i).source_vertex << " = " << "error" << endl;
-		}
-		cout << endl;
 		for (unsigned i = 0; i < res.size(); i++)
 		{
-			for (unsigned j = 0; j < res[i].size(); j++)
-				cout << res[i][j] << "->";
+			res[i].push_back(table.at(i).source_vertex);
+		}
+		cout << "Result:" << endl;
+		for (unsigned j = 0; j < res[dt].size(); j++)
+			cout << res[dt][j] << "->";
+		cout << "\b\b";
+		if (D[dt] != INT_MAX)
+			cout << " = " << D[dt] << endl;
+		else
+			cout << " = " << "error" << endl;
+		cout << endl;
+
+	}
+
+	struct DVertex {
+		TVertex prev;
+		TVertex cur;
+		TEdge d = DBL_MAX;
+	public:
+		bool operator()(const DVertex& lhs, const DVertex& rhs)
+		{
+			return(lhs.d < rhs.d);
+		}
+		operator double() const
+		{
+			return this->d;
+		}
+	};
+
+
+	void dijkstra(const TVertex& source, const TVertex& dest)
+	{
+		int is = index(source);
+		int ds = index(dest);
+		if (is >= 0 && ds >= 0)
+		{
+			vector<vector<TEdge>> w(table.size());
+			for (unsigned i = 0; i < table.size(); i++)
+			{
+				for (unsigned j = 0; j < table.size(); j++)
+				{
+					w[i].push_back(INT_MAX);
+				}
+			}
+			for (unsigned i = 0; i < table.size(); i++)
+			{
+				for (unsigned j = 0; j < table.at(i).list_of_destinations.size(); j++)
+				{
+					unsigned dest_index = index(table.at(i).list_of_destinations.at(j).destination_vertex);
+					w[i][dest_index] = table.at(i).list_of_destinations.at(j).edge;
+				}
+			}
+			vector<vector<TVertex>> ways;
+			ways.resize(table.size());
+			for (int i = 0; i < table.size(); i++)
+			{
+				//res[i].resize(table.size());
+				ways[i].push_back((table.at(is).source_vertex));
+			}
+			vector<DVertex> vert(table.size());
+			vector<DVertex> S;
+			vector<DVertex> Q;
+			for (int i = 0; i < table.size(); i++)
+			{
+				DVertex tmp;
+				tmp.d = w[is][i];
+				tmp.cur = table.at(i).source_vertex;
+				vert[i] = tmp;
+			}
+			vert[is].d = 0;
+			Q = vert;
+			sort(Q.begin(), Q.end(), greater<double>());
+			while (!Q.empty())
+			{
+				DVertex u = Q.back();
+				Q.pop_back();
+				S.push_back(u);
+				for (unsigned i = 0; i < table[(index(u.cur))].list_of_destinations.size(); i++)
+				{
+					DVertex v = vert[index(table[index(u.cur)].list_of_destinations[i].destination_vertex)];
+					if (v.d > u.d + w[index(u.cur)][index(v.cur)])
+					{
+						ways[index(v.cur)] = ways[index(u.cur)];
+						ways[index(v.cur)].push_back((table.at(index(u.cur)).source_vertex));
+						v.d = u.d + w[index(u.cur)][index(v.cur)];
+						v.prev = u.cur;
+						//vert[index(v.cur)].d = v.d;
+						for (unsigned i = 0; i < Q.size(); i++)
+						{
+							if (Q[i].cur == v.cur)
+							{
+								Q[i] = v;
+								sort(Q.begin(), Q.end(), greater<double>());
+							}
+						}
+						//Q.push_back(v);
+						//sort(Q.begin(), Q.end(), greater<double>());
+					}
+				}
+			}
+			for (unsigned i = 0; i < vert.size(); i++)
+			{
+				cout << source << " -> " << table[i].source_vertex << " = " << S[i].d << endl;
+			}
+			for (unsigned i = 0; i < ways.size(); i++)
+			{
+				ways[i].push_back(table.at(i).source_vertex);
+			}
+			cout << "Result:" << endl;
+			for (unsigned j = 0; j < ways[ds].size(); j++)
+				cout << ways[ds][j] << "->";
+			cout << "\b\b";
+			if (S[ds] != DBL_MAX)
+				cout << " = " << S[ds] << endl;
+			else
+				cout << " = " << "error" << endl;
 			cout << endl;
 		}
 	}
@@ -299,17 +403,21 @@ int main()
 	g.add_vertex(4);
 	g.add_vertex(5);
 	g.add_edge(1, 2, 1);
-	g.add_edge(2, 3, 2);
-	g.add_edge(3, 4, 2);
-	g.add_edge(4, 5, 2);
-	g.add_edge(4, 1, 5);
-	g.add_edge(3, 2, 7);
-	g.add_edge(1, 2, 8);
-	g.add_edge(3, 4, 8);
-	g.add_edge(4, 5, 9);
+	g.add_edge(2, 5, 9);
+	g.add_edge(1, 5, 10);
+	g.add_edge(1, 4, 7);
+	g.add_edge(2, 3, 1);
+	g.add_edge(3, 4, 1);
+	g.add_edge(4, 2, 2);
+	g.add_edge(4, 5, 4);
+	g.add_vertex(6);
+	g.del_edge(4, 5);
+	g.del_vertex(2);
+	g.del_edge(1, 5);
 	g.print();
 	g.width_search();
 	g.Dijkstra(1, 5);
+	g.dijkstra(1, 5);
 	return 0;
 }
 
