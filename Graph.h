@@ -14,15 +14,27 @@ class Graph
 {
 private:
 	struct destination {
-		unsigned index;
 		TEdge edge;
 		TVertex destination_vertex;
+		destination(const TEdge& e, const TVertex& v): edge(e), destination_vertex(v) {}
+		destination(const destination& d)
+		{
+			this->edge = d.edge;
+			this->destination_vertex = d.destination_vertex;
+		}
 	};
 
 	struct vertex {
 		unsigned index;
 		TVertex source_vertex;
 		vector<destination> list_of_destinations;
+		vertex(const unsigned& idx, const TVertex& source): index(idx), source_vertex(source) {}
+		vertex(const vertex& v)
+		{
+			this->index = v.index;
+			this->source_vertex = v.source_vertex;
+			this->list_of_destinations = v.list_of_destinations;
+		}
 	};
 
 	vector<vertex> table;
@@ -41,9 +53,9 @@ public:
 	{
 		if (index(v) < 0)
 		{
-			vertex av;
-			av.index = table.size();
-			av.source_vertex = v;
+			vertex av (table.size(), v);
+			//av.index = table.size();
+			//av.source_vertex = v;
 			table.push_back(av);
 		}
 		else { throw "This vertex is already exists!"; }
@@ -56,10 +68,10 @@ public:
 		if ((index_source < 0) || (index_destination < 0)) { return; }//throw "The vetrtex is not exists"; }
 		else
 		{
-			destination new_dest;
-			new_dest.index = table.at(index_source).list_of_destinations.size();
-			new_dest.destination_vertex = dest;
-			new_dest.edge = edge;
+			destination new_dest(edge, dest);
+			//new_dest.index = table.at(index_source).list_of_destinations.size();
+			//new_dest.destination_vertex = dest;
+			//new_dest.edge = edge;
 			table.at(index_source).list_of_destinations.push_back(new_dest);
 		}
 	}
@@ -79,7 +91,7 @@ public:
 						{
 							for (unsigned k = j; k < table.at(i).list_of_destinations.size() - 1; k++)
 							{
-								table.at(i).list_of_destinations.at(k).destination_vertex = table.at(i).list_of_destinations.at(k + 1).destination_vertex;
+								table.at(i).list_of_destinations.at(k)= table.at(i).list_of_destinations.at(k + 1);
 							}
 						}
 						table.at(i).list_of_destinations.pop_back();
@@ -96,7 +108,7 @@ public:
 						{
 							for (unsigned k = j; k < table.at(i).list_of_destinations.size() - 1; k++)
 							{
-								table.at(i).list_of_destinations.at(k).destination_vertex = table.at(i).list_of_destinations.at(k + 1).destination_vertex;
+								table.at(i).list_of_destinations.at(k) = table.at(i).list_of_destinations.at(k + 1);
 							}
 						}
 						table.at(i).list_of_destinations.pop_back();
@@ -125,7 +137,7 @@ public:
 			{
 				for (unsigned j = i; j < table.at(index_source).list_of_destinations.size() - 1; j++)
 				{
-					table.at(index_source).list_of_destinations.at(j).destination_vertex = table.at(index_source).list_of_destinations.at(j + 1).destination_vertex;
+					table.at(index_source).list_of_destinations.at(j) = table.at(index_source).list_of_destinations.at(j + 1);
 				}
 				table.at(index_source).list_of_destinations.pop_back();
 			}
@@ -187,13 +199,9 @@ public:
 		{
 			color_vertex a = Q.front();
 			Q.pop();
-			//cout << endl << "from ";
-			//cout << a.cur.source_vertex;
-			//cout << " to ";
 			for (unsigned i = 0; i < a.current.list_of_destinations.size(); i++)
 			{
 				unsigned id = index(a.current.list_of_destinations.at(i).destination_vertex);
-				//cout << U.at(id).cur.source_vertex << " and ";
 				if (U.at(id).color == 0)
 				{
 					U.at(id).color = 1;
@@ -202,7 +210,6 @@ public:
 					Q.push(U.at(id));
 				}
 			}
-			//cout << endl;
 			U.at(index(a.current.source_vertex)).color = 2;
 		}
 	}
@@ -211,13 +218,12 @@ public:
 	{
 		unsigned st = index(source);
 		unsigned dt = index(dest);
-		//unsigned count = table.size();
 		vector<vector<TEdge>> w(table.size());
 		for (unsigned i = 0; i < table.size(); i++)
 		{
 			for (unsigned j = 0; j < table.size(); j++)
 			{
-				w[i].push_back(INT_MAX);
+				w[i].push_back(999999);
 			}
 		}
 		for (unsigned i = 0; i < table.size(); i++)
@@ -233,7 +239,6 @@ public:
 		unsigned f = 0;
 		for (int i = 0; i < table.size(); i++)
 		{
-			//res[i].resize(table.size());
 			res[i].push_back((table.at(st).source_vertex));
 		}
 		vector<bool> visited(table.size());
@@ -247,7 +252,7 @@ public:
 		int index = 0, u = 0;
 		for (int i = 0; i < table.size(); i++)
 		{
-			int min = INT_MAX;
+			int min = 999999;
 			for (int j = 0; j < table.size(); j++)
 			{
 				if (!visited[j] && D[j] < min)
@@ -260,16 +265,13 @@ public:
 			visited[u] = true;
 			for (int j = 0; j < table.size(); j++)
 			{
-				if (!visited[j] && w[u][j] != INT_MAX && D[u] != INT_MAX && (D[u] + w[u][j] < D[j]))
+				if (!visited[j] && w[u][j] != 999999 && D[u] != 999999 && (D[u] + w[u][j] < D[j]))
 				{
 					res[j] = res[u];
 					res[j].push_back((table.at(u).source_vertex));
-					//f++;
-					//res[j].push_back((table.at(j).source_vertex));
 					D[j] = D[u] + w[u][j];
 				}
 			}
-			//f = 1;
 		}
 		for (unsigned i = 0; i < res.size(); i++)
 		{
@@ -279,7 +281,7 @@ public:
 		for (unsigned j = 0; j < res[dt].size(); j++)
 			cout << res[dt][j] << "->";
 		cout << "\b\b";
-		if (D[dt] != INT_MAX)
+		if (D[dt] != 999999)
 			cout << " = " << D[dt] << endl;
 		else
 			cout << " = " << "error" << endl;
@@ -290,18 +292,25 @@ public:
 	struct DVertex {
 		TVertex prev;
 		TVertex cur;
-		TEdge d = DBL_MAX;
+		TEdge d;
 	public:
+		DVertex(): d(999999){}
+		DVertex operator=(const DVertex& c)
+		{
+			this->prev = c.prev;
+			this->cur = c.cur;
+			this->d = c.d;
+			return *this;
+		}
 		bool operator()(const DVertex& lhs, const DVertex& rhs)
 		{
 			return(lhs.d < rhs.d);
 		}
-		operator double() const
+		operator double()
 		{
 			return this->d;
 		}
 	};
-
 
 	void dijkstra(const TVertex& source, const TVertex& dest)
 	{
@@ -314,7 +323,8 @@ public:
 			{
 				for (unsigned j = 0; j < table.size(); j++)
 				{
-					w[i].push_back(INT_MAX);
+					TEdge tmp(false, false, 999999);
+					w[i].push_back(tmp);
 				}
 			}
 			for (unsigned i = 0; i < table.size(); i++)
@@ -327,23 +337,14 @@ public:
 			}
 			vector<vector<TVertex>> ways;
 			ways.resize(table.size());
-			for (int i = 0; i < table.size(); i++)
-			{
-				//res[i].resize(table.size());
-				ways[i].push_back((table.at(is).source_vertex));
-			}
-			vector<DVertex> vert(table.size());
 			vector<DVertex> S;
-			vector<DVertex> Q;
-			for (int i = 0; i < table.size(); i++)
+			vector<DVertex> Q(table.size());
+			for (unsigned i = 0; i < table.size(); i++)
 			{
-				DVertex tmp;
-				tmp.d = w[is][i];
-				tmp.cur = table.at(i).source_vertex;
-				vert[i] = tmp;
+				Q[i].cur = table.at(i).source_vertex;
+				Q[i].d = 999999;
 			}
-			vert[is].d = 0;
-			Q = vert;
+			Q[is].d = 0;
 			sort(Q.begin(), Q.end(), greater<double>());
 			while (!Q.empty())
 			{
@@ -352,74 +353,54 @@ public:
 				S.push_back(u);
 				for (unsigned i = 0; i < table[(index(u.cur))].list_of_destinations.size(); i++)
 				{
-					DVertex v = vert[index(table[index(u.cur)].list_of_destinations[i].destination_vertex)];
-					if (v.d > u.d + w[index(u.cur)][index(v.cur)])
+					DVertex v;
+					bool flag = false;
+					for (unsigned j = 0; j < Q.size(); j++)
+					{
+						if (Q[j].cur == table[index(u.cur)].list_of_destinations[i].destination_vertex)
+						{
+							v = Q[j];
+							flag = true;
+							break;
+						}
+					}
+					if (flag && (v.d > u.d + w[index(u.cur)][index(v.cur)]))
 					{
 						ways[index(v.cur)] = ways[index(u.cur)];
 						ways[index(v.cur)].push_back((table.at(index(u.cur)).source_vertex));
 						v.d = u.d + w[index(u.cur)][index(v.cur)];
 						v.prev = u.cur;
-						//vert[index(v.cur)].d = v.d;
 						for (unsigned i = 0; i < Q.size(); i++)
 						{
 							if (Q[i].cur == v.cur)
 							{
 								Q[i] = v;
 								sort(Q.begin(), Q.end(), greater<double>());
+								break;
 							}
 						}
-						//Q.push_back(v);
-						//sort(Q.begin(), Q.end(), greater<double>());
 					}
 				}
-			}
-			for (unsigned i = 0; i < vert.size(); i++)
-			{
-				cout << source << " -> " << table[i].source_vertex << " = " << S[i].d << endl;
 			}
 			for (unsigned i = 0; i < ways.size(); i++)
 			{
 				ways[i].push_back(table.at(i).source_vertex);
 			}
-			cout << "Result:" << endl;
+			cout << "Result:" << endl << "Way:";
 			for (unsigned j = 0; j < ways[ds].size(); j++)
 				cout << ways[ds][j] << "->";
 			cout << "\b\b";
-			if (S[ds] != DBL_MAX)
-				cout << " = " << S[ds] << endl;
-			else
-				cout << " = " << "error" << endl;
+			for (unsigned i = 0; i < S.size(); i++)
+			{
+				if (S[i].cur == table[ds].source_vertex)
+				{
+					if (S[i] != 999999)
+						cout << " = " << S[i].d << endl;
+					else
+						cout << ""<<" = " << "error" << endl;
+				}
+			}
 			cout << endl;
 		}
 	}
 };
-
-int main()
-{
-	Graph<int, int> g;
-	g.add_vertex(1);
-	g.add_vertex(2);
-	g.add_vertex(3);
-	g.add_vertex(4);
-	g.add_vertex(5);
-	g.add_edge(1, 2, 1);
-	g.add_edge(2, 5, 9);
-	g.add_edge(1, 5, 10);
-	g.add_edge(1, 4, 7);
-	g.add_edge(2, 3, 1);
-	g.add_edge(3, 4, 1);
-	g.add_edge(4, 2, 2);
-	g.add_edge(4, 5, 4);
-	g.add_vertex(6);
-	g.del_edge(4, 5);
-	g.del_vertex(2);
-	g.del_edge(1, 5);
-	g.print();
-	g.width_search();
-	g.Dijkstra(1, 5);
-	g.dijkstra(1, 5);
-	return 0;
-}
-
-
-
